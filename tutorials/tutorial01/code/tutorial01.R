@@ -90,6 +90,12 @@ xml_children(tab1)
 # result to an object.
 dat <- 
 
+dat %>%
+  filter(grepl("ENG|AUS", Player)) %>%
+  ggplot(aes(Balls, Wkts)) +
+    geom_text(aes(label = Player)) +
+    geom_smooth(method = "lm")
+
 ##############################
 # Putting it all together... #
 ##############################
