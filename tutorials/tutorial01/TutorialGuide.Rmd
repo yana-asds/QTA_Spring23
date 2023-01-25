@@ -1,0 +1,53 @@
+---
+title: "Tutorial Guide, QTA Wk 1"
+author: "Martyn Egan"
+date: "2023-01-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rvest) # for dealing with html 
+library(xml2) # some extra functions for html
+library(httr) # for dealing directly with http
+library(magrittr) # the pipe operator
+library(purrr) # for slowing down web scraping
+```
+
+## Web scraping
+
+In whatever field of data science we're engaged in, it sometimes happens that the data we need cannot be found in a nice `.csv` file, but instead live an untidy existence somewhere on the web. Learning some basic skills of web scraping - literally scraping data from websites - can save you a lot of time and effort in copy/pasting...
+
+## Learning Outcomes
+
+By the end of today's class you will:
+
+1. Be able to read in `html` to R and convert `html` to a usable format.
+2. Understand `html` data structures, including `xml`, and be able to navigate through them in R.
+3. Be aware of more advanced procedures, including automation, as well as JSON for interacting with APIs.
+
+Remember: web scraping can be complex, and requires working with an unfamiliar programming language, so today's tutorial is intended only as an introduction. If you are interested in improving your web scraping skills, I recommend taking an online course from datacamp or udemy.
+
+## Case Study
+
+In order to improve our skills in web scraping, while also tremendously enriching our lives, we will do a small project on the greatest Englishman since St. Patrick, [Jimmy Anderson](https://en.wikipedia.org/wiki/James_Anderson_(cricketer)).
+
+```{r jimmy, echo=FALSE, message=FALSE, out.height="50%", out.width="50%", fig.cap = "Jimmy (Photograph: Martin Rickett/PA)"}
+knitr::include_graphics("Jimmy.webp")
+```
+
+We want to know how Jimmy, the world's greatest bowler, compares with other, particularly Australian, bowlers. Fortunately for us, there is a website with just such information: ESPN's [cricinfo](https://www.espncricinfo.com/), a valuable resource.
+
+Let's take a look at the [top international bowling figures](https://stats.espncricinfo.com/ci/content/records/93276.html).
+
+What a lot of lovely cricket data! But unfortunately it is currently living its worst life as a nasty `html`, which means we cannot analyse it. Sad.
+
+Let's fix that with web scraping. Open your R scripts, and let's free the data.
+
+## Final note...
+
+Using `xpath` selectors to scrape the web can be cumbersome, and usually won't work on fancy websites that use `javascript` and other interactive features. What this means in practice is that we need to use more advanced methods for scraping the web. One approach, for websites that have them, is to use a web API (application programming interface). Twitter, for example, has an [API](https://developer.twitter.com/en/docs/twitter-api) for developers to help scrape data, at least until Elon Musk decides to charge you for it. Congratulations in advance if you get it to work.
+
+Interacting with APIs generally involves using the `JSON` language, and directly interfacing with a site through `http`. In R, the packages `httr` and `jsonlite` can help access [APIs](https://www.r-bloggers.com/2015/11/accessing-apis-from-r-and-a-little-r-programming/).
+
+Another important tool is automation. For websites with front-end interfaces, it can be a big time saver to be able to automate certain actions, particularly where data is dynamically generated using `java`. [Selenium](https://www.r-bloggers.com/2014/12/scraping-with-selenium/) can help with this, though it is not for the faint-hearted.
