@@ -14,7 +14,7 @@ library(xml2)
 # We use the read_html() function from rvest to read in the html
 bowlers <- "https://stats.espncricinfo.com/ci/content/records/93276.html"
 
-html <- read_html()
+html <- read_html(bowlers)
 html
 
 # We can inspect the structure of this html using xml_structure() from xml2
@@ -45,9 +45,6 @@ capture.output(xml_structure(html))
 # html nodes using html_nodes()
 html %>%
   html_nodes() # try searching for the table node
-
-html %>%
-  html_nodes() # we could also try using the class - add a dot before
 
 # xpaths
 # To search using xpath selectors, we need to add the xpath argument.
