@@ -1,5 +1,7 @@
 "table"
 
+".ds-table"
+
 xpath = "//table[position() = 1]"
 
 xpath = "//table/thead | //table/tbody"
