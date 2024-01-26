@@ -46,6 +46,9 @@ capture.output(xml_structure(html))
 html %>%
   html_nodes() # try searching for the table node
 
+html %>% 
+  html_nodes() # try searching using the class (add a dot)
+
 # xpaths
 # To search using xpath selectors, we need to add the xpath argument.
 html %>%
@@ -68,11 +71,11 @@ tab2 <- tab1 %>%
 # We now have an object containing 2 lists. With a bit of work we can extract 
 # the text we want as a vector:
 heads <- tab2[1] %>%
-  html_nodes(xpath = "//th") %>%
+  html_nodes(xpath = "") %>%
   html_text()
 
 body <- tab2[2] %>%
-  html_nodes(xpath = "//tr/td") %>%
+  html_nodes(xpath = "") %>%
   html_text()
 
 # We now have two vectors, one with our categories and one with our data. We 
