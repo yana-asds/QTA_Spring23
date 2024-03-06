@@ -1,0 +1,187 @@
+---
+title: "Topic Modelling with STM using R"
+author: "Yana Konshyna"
+date: "06 March 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Overview
+
+There are many alternative approaches to topic modelling besides LDA. One popular method is the Structural Topic Model, which was developed by a team of political scientists (Roberts et al., 2014).  This model is particularly useful if we wish to use metadata to inform the topic model of how to allocate topics.
+
+
+```{r load libraries}
+library(quanteda)
+library(stm) # STM
+library(wordcloud)
+library(ggplot2)
+if(!require(devtools)) install.packages("devtools")
+library("stmBrowser")
+```
+
+### Bring in text data
+
+As always, we will need to bring in our text data prior to running the analysis.  We will be using the same DFM object as we did in the LDA tutorial.
+
+```{r load dfm}
+# load dfm from disk
+dfm <- readRDS("/data/dfm2013_last.rds")
+```
+
+
+### Estimate STM model
+
+The first thing we will do is convert the quanteda DFM object to STM format to help reduce memory usage when running the STM model.  Using this STM document-feature matrix, we will then estimate the STM model.  We need to declare the document-term matrix that will be modeled.  We also have to point to the character vector that includes the vocabulary in our corpus.  
+
+Newspaper source and month will be the covariates used to help train the topics.  Specifically, we will set the source and date variables to explain topical prevalence. Note that we will be transforming the month variable using a b-spline.
+
+We will be running this initial model as we did before with `k = 30` topics (though, below we will run some data-driven routines to determine a potentially better topic solution). We'll allow the model to iterate up to 500 times for convergence.  We will use a spectral decomposition method to initialize the model parameters (as recommended by the package authors, see also Roberts et al. 2016).  Lastly, we will set a seed so that the results can be replicated.  If you wish to not see the output as the model is running, switch to `verbose = FALSE`.
+
+Note, the model may take some time to converge.  If you have ample memory, you might want to include the `ngroups` argument to larger than 1.  This will segment the corpus into equal-sized blocks and update the estimated global parameters after running each block.  Regardless, depending on the size of the corpus, you may want to make a cup of tea after hitting `Run`.  
+
+```{r run stm model, eval = FALSE}
+stmdfm <- convert(dfm, to = "stm") # convert quanteda dfm to stm format (helps with memory)
+
+modelFit <- stm(documents = stmdfm$documents,
+                vocab = stmdfm$vocab,
+                K = 15,
+                prevalence = ~ 1,
+                #source + s(as.numeric(date_month))
+                data = stmdfm$meta,
+                max.em.its = 500,
+                init.type = "Spectral",
+                seed = 1234,
+                verbose = TRUE)
+
+saveRDS(modelFit, "/data/modelFit2013_last") # save the estimated model to disk for interpretation and usage
+```
+
+We will now load the estimated model and walk through a number of interpretation and evaluation steps.
+
+```{r load stm model, echo = FALSE}
+modelFit <- readRDS("/data/modelFit2013_last")
+```
+
+### Topic model interpretation
+
+The `stm` package offers a wide array of very useful functions to help us interpret the estimated topics. The interpretation approach is the same as we conducted when estimating an LDA model.  We will first want to inspect the most probable terms for each topic to help us when labelling the topics.  There are two ways that we can inspect these terms: 1) use the `labelTopics` function which displays the top terms according to highest probability, FREX (weighted harmonic mean of term exclusivity and frequency, see Roberts, Stewart, and Airoldi 2013), Lift, and Score (see the [`stm` vignette]("https://github.com/bstewart/stm/blob/master/inst/doc/stmVignette.pdf?raw=true") for more info); and 2) a graphical display of topic prevalence and the top words using `plot.STM()`.
+
+#### Topic interpretation with `labelTopics`
+
+```{r topic interpretation with labelTopics}
+labelTopics(modelFit)
+```
+
+#### Topic interpretation with `plot.STM()`
+
+We can also interpret the topics graphically with `stm`.  The first is to generate a plot using the `summary` argument, which ranks the topics according to the FREX metric.
+
+```{r topic interpretation with plot.STM}
+plot.STM(modelFit, 
+         type = "summary", 
+         labeltype = "frex",
+         text.cex = 0.7,
+         main = "Topic prevalence and top terms")
+```
+
+We can also generate a similar plot, but with highest probable terms per topic. Compare these results to those above.
+
+```{r topic interpretation with plot.STM 2}
+plot.STM(modelFit, 
+         type = "summary", 
+         labeltype = "prob",
+         text.cex = 0.7,
+         main = "Topic prevalence and top terms")
+```
+
+#### Word cloud of topics
+
+We can also visualize the top terms of a topic by generating a word cloud. NB: you will need to install the `wordcloud` package to run this function.  Let's look at the top 50 terms from the 11th topic:
+
+```{r word cloud of topic 14}
+cloud(modelFit,
+      topic = 11,
+      scale = c(2.5, 0.3),
+      max.words = 50)
+```
+
+### Topic Validation
+
+As with LDA or other unsupervised machine learning classification tasks, we will want to validate the models as much as possible.  Below are a number of methods we can use to validate the topic model.
+
+#### Topic Quality (Semantic coherence and exclusivity)
+
+We can also calculate the *semantic coherence* (Mimno et al., 2011) and *exclusivity* (Bischof & Airoldi 2012; Roberts et al., 2014) of each topic using the fitted model.  There are two ways to do this: 1) we can use the `topicQuality` function which calculates these quantities and also plots the values for each topic.
+
+```{r, eval = FALSE}
+# note: this code is broken when used with modelFit.rds; it may work if you run your own model
+topicQuality(model = modelFit,
+             documents = stmdfm$documents,
+             xlab = "Semantic Coherence",
+             ylab = "Exclusivity",
+             labels = 1:ncol(modelFit$theta),
+             M = 15)
+```
+
+We can also use the underlying functions to make our own customized plot.
+
+```{r, eval = FALSE}
+# note: this code is broken when used with modelFit.rds; it may work if you run your own model
+SemEx <- as.data.frame(cbind(c(1:ncol(modelFit$theta)), 
+                             exclusivity(modelFit),
+                             semanticCoherence(model = modelFit,
+                                               documents = stmdfm$documents,
+                                               M = 15)))
+
+colnames(SemEx) <- c("k", "ex", "coh")
+
+SemExPlot <- ggplot(SemEx, aes(coh, ex)) +
+  geom_text(aes(label=k)) +
+  labs(x = "Semantic Coherence",
+       y = "Exclusivity",
+       title = "Topic Semantic Coherence vs. Exclusivity") +
+  geom_rug() +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "gray", size=1))
+SemExPlot
+```
+
+Topics 13 and 10 seem to be outliers in terms of coherence and exclusivity, respectively.  We can take a closer look at the probable terms for these topics to get a sense of the problem.
+
+```{r}
+labelTopics(modelFit,
+            topics = c(10,13))
+```
+
+#### Extended visualizations
+
+There are a number of libraries that can be used to visualize the topic model results.  The `LDAvis` package is one such powerful library that allows the researcher to navigate the topics and observe topic similarities.  This is a way of determining semantic validity of the model.
+
+```{r}
+#install.packages('servr')
+library("LDAvis")
+toLDAvis(mod = modelFit,
+         docs = stmdfm$documents,
+         open.browser = interactive(),
+         reorder.topics = TRUE)
+```
+
+There is also a more general exploration tool called `stmBrowser`. You can download the package using the following code (be sure to download all dependencies).  
+
+```{r}
+stmBrowser(mod = modelFit,
+           data = stmdfm$meta,
+           covariates = c("source", "date_month"),
+           text = "original_text",
+           n = 1000)
+```
+
+With this tool you can explore bivariate (even multivariate) relationships between topics and easily read examples of documents with various topic probabilities. You can also observe the relationship between covariates and topics.  For instance, we could set the color of the labels in the graph to "source".
+
+

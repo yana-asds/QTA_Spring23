@@ -1,0 +1,92 @@
+---
+title: "Word embeddings"
+author: "Yana Konshyna"
+date: "06 March 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Overview
+
+In this script we will be implementing the `word2vec` model (Mikolov et al. 2013) to learn vector representations of words in a large collection of articles.
+
+```{r load libraries}
+library(quanteda)
+library(readtext)
+library(word2vec)
+library(uwot)
+```
+
+Note that the steps in the training section of the script take *a very long time* to run.  To save time, the estimated model is available to load on to your machine so that you can explore the word embeddings on your own. 
+
+
+Now that we have run the model and saved it to disk, let's load it an explore the word embeddings.
+
+### Load fitted model
+```{r load fitted w2v model}
+model <- read.word2vec("/data/guard2013_last_w2v_sg_6_300")
+```
+
+We can generate a V by d matrix.
+
+```{r predictions}
+emb <- as.matrix(model)
+```
+
+And print the vector for a particular word, say "antisemitism".  
+
+```{r}
+vector <- emb["antisemitism", ]
+vector
+```
+
+Of course, these values are meaningless on their own.  But we *can* use them to figure out what other words are "similar" semantically by calculating the cosine similarity of the target word with all other words in the embedding matrix and then keeping the top words with the highest similarity.
+
+```{r}
+vector <- emb["antisemitism", ]
+predict(model, vector, type = "nearest", top_n = 10)
+```
+
+This list is quite impressive! Recall that this is an unsupervised method; we did not specify any similar examples to the machine for it to find this list.  These are words that tend to show up in the same context as the target word "antisemitism"
+
+Or take a more important word "racism"
+
+```{r}
+vector <- emb["racism", ]
+predict(model, vector, type = "nearest", top_n = 10)
+```
+
+If we were building a dictionary of racism, think about how useful this list would be to us
+
+Let's look at another example: 
+
+```{r}
+vector <- emb["racism", ]+ emb["labour", ]
+predict(model, vector, type = "nearest", top_n = 10)
+```
+
+A fascinating property of the embedding matrix is that we can perform operations on the word vectors to reveal similarities between produced vectors and words in our coprus.  For instance, let's now create a new vector that is the sum of the vectors for "antisemitism" and "labour". The words with the highest cosine similarity with this vector correspond to the antisemitism and labour at the time.
+
+```{r}
+vector <- emb["antisemitism", ] + emb["labour", ]
+predict(model, vector, type = "nearest", top_n = 10)
+```
+
+### More on calculating word similarities
+
+We can learn a lot about how a particular corpus relates concepts with the above approach.  Let's calculate the word similarities for the following terms to see how closely the terms "antisemitism" and "labour" relate  according to the articles written in The Guardian.
+
+```{r}
+x <- emb[c("antisemitism", "labour"), ]
+y <- emb
+word2vec_similarity(x, x)
+word2vec_similarity(x, y, top_n = 5)
+predict(model, x, type = "nearest", top_n = 5)
+```
+
+
+
+

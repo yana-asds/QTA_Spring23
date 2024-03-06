@@ -1,0 +1,166 @@
+---
+title: "Corpus creation"
+author: "Yana Konshyna"
+date: "06 March 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Overview
+
+In this script we will be implementing the `word2vec` model (Mikolov et al. 2013) to learn vector representations of words in a large collection of articles.
+
+```{r load libraries}
+library(quanteda)
+library(readtext)
+library(word2vec)
+library(uwot)
+```
+
+```{r, eval = FALSE}
+## Load packages
+pkgTest <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[,  "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg,  dependencies = TRUE)
+  sapply(pkg,  require,  character.only = TRUE)
+}
+
+lapply(c("tidyverse",
+         "guardianapi", # for working with the Guardian's API
+         "quanteda", # for QTA
+         "quanteda.textstats", # more Quanteda!
+         "quanteda.textplots", # even more Quanteda!
+         "readtext", # for reading in text data
+         "stringi", # for working with character strings
+         "textstem" # an alternative method for lemmatizing
+       ), pkgTest)
+```
+
+```{r, eval = FALSE}
+### A. Using the Guardian API with R
+gu_api_key() # run this interactive function
+
+# We want to query the API on articles featuring "antisemitism" since Jan 1 2013
+dat <- gu_content(query = "antisemitism", from_date = "2013-01-01") # making a tibble
+
+# We'll save this data
+saveRDS(dat, "/data/df_2013_last")
+# And make a duplicate to work on
+df <- dat  
+```
+```{r, eval = FALSE}
+# Take a look at the kind of object which gu_content creates. 
+# Try to find the column we need for our text analyses
+head(df) # checking our tibble
+
+# Print the number of rows
+ print(nrow(df))
+```
+
+```{r, eval = FALSE}
+df <- df[df$type =="article" & df$section_id == "politics",] # see if you can subset the object to focus on the articles we want
+
+which(duplicated(df$web_title) == TRUE) # sometimes there are duplicates...
+df <- df[!duplicated(df$web_title),] # which we can remove
+
+### B. Making a corpus
+# We can use the corpus() function to convert our df to a quanteda corpus
+corpus_guardian <- corpus(df, 
+                     docid_field = "web_title", 
+                     text_field = "body_text") # select the correct column here
+
+# Checking our corpus
+#summary(corpus_guardian, 5)
+```
+```{r, eval = FALSE}
+library(quanteda)
+library(tibble)
+library(readr) 
+
+texts_df <- df[, c("web_publication_date", "id", "web_url", "body_text", "web_title")]
+
+# If 'source' is a constant value, say "The Guardian", you can add it like this:
+#texts_df$source <- "Guardian"
+texts_df <- data.frame(
+  date_month = df$web_publication_date,
+  id = df$id,
+  link = df$web_url,
+  text = df$body_text,
+  title = df$web_title,
+  source = 'Guardian' 
+)
+
+write.csv(texts_df, "/data/corpus2013_last.csv", row.names = TRUE)
+
+
+```
+
+Note that the steps in the training section of the script take *a very long time* to run.  To save time, the estimated model is available to load on to your machine so that you can explore the word embeddings on your own. 
+
+### Load texts
+```{r, eval = FALSE}
+
+text_csv <- read.csv("/data/corpus2013_last.csv", 
+               header = TRUE, 
+               stringsAsFactors = FALSE,
+               quote = "\"",
+               fill = TRUE,
+               comment.char = "")
+
+```
+
+### Preprocessing
+```{r, eval = FALSE}
+library(quanteda)
+
+# Preprocess the text to remove HTML tags and JavaScript
+text_csv$text <- gsub("<.*?>", "", text_csv$text) # Remove HTML tags
+text_csv$text <- gsub("advertisementvar data.*?ba=0;ba", "", text_csv$text) # Remove JavaScript
+
+# Create a corpus, specifying document names if available
+corpus <- corpus(text_csv$text, docnames = text_csv$doc_id)
+
+# Tokenize and preprocess
+tokens <- quanteda::tokens(corpus,
+                 remove_numbers = TRUE,
+                 remove_punct = TRUE,
+                 remove_symbols = TRUE,
+                 remove_hyphens = TRUE,
+                 remove_separators = TRUE,
+                 remove_url = TRUE,
+                 tolower = TRUE) %>%
+    tokens_remove(stopwords("english")) # Remove stop words in a single chain
+
+# Directly create a Document-Feature Matrix (DFM) from tokens
+dfm <- dfm(tokens)
+
+docs <- as.list(tokens) # get text of articles
+docs <- tolower(docs)
+
+# Create a Document-Feature Matrix (DFM)
+#dfm <- dfm(docs)
+
+# Save the DFM object to a file
+saveRDS(dfm, "/data/dfm2013_last.rds")
+```
+
+### Build a model and save to disk
+```{r, eval = FALSE}
+library(word2vec)
+set.seed(12345)
+model <- word2vec(x = docs, 
+                  type = "skip-gram",
+                  dim = 300, 
+                  window = 6, 
+                  iter = 10, 
+                  threads = 15)
+
+write.word2vec(model, 
+               file = "/data/guard2013_last_w2v_sg_6_300", 
+               type = c("bin", "txt"), 
+               encoding = "UTF-8")
+```
