@@ -1,12 +1,13 @@
 ---
 title: "Topic Modelling with STM using R"
 author: "Yana Konshyna"
-date: "06 March 2024"
+date: "07 March 2024"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(error = TRUE)
 ```
 
 ### Overview
@@ -25,7 +26,7 @@ library("stmBrowser")
 
 ### Bring in text data
 
-As always, we will need to bring in our text data prior to running the analysis.  We will be using the same DFM object as we did in the LDA tutorial.
+As always, we will need to bring in our text data prior to running the analysis.  
 
 ```{r load dfm}
 # load dfm from disk
@@ -104,7 +105,7 @@ We can also visualize the top terms of a topic by generating a word cloud. NB: y
 
 ```{r word cloud of topic 14}
 cloud(modelFit,
-      topic = 11,
+      topic = 10,
       scale = c(2.5, 0.3),
       max.words = 50)
 ```
@@ -152,11 +153,11 @@ SemExPlot <- ggplot(SemEx, aes(coh, ex)) +
 SemExPlot
 ```
 
-Topics 13 and 10 seem to be outliers in terms of coherence and exclusivity, respectively.  We can take a closer look at the probable terms for these topics to get a sense of the problem.
+Topics 6 and 11 seem to be outliers in terms of coherence and exclusivity, respectively.  We can take a closer look at the probable terms for these topics to get a sense of the problem.
 
 ```{r}
 labelTopics(modelFit,
-            topics = c(10,13))
+            topics = c(6,11))
 ```
 
 #### Extended visualizations
@@ -172,16 +173,5 @@ toLDAvis(mod = modelFit,
          reorder.topics = TRUE)
 ```
 
-There is also a more general exploration tool called `stmBrowser`. You can download the package using the following code (be sure to download all dependencies).  
-
-```{r}
-stmBrowser(mod = modelFit,
-           data = stmdfm$meta,
-           covariates = c("source", "date_month"),
-           text = "original_text",
-           n = 1000)
-```
-
-With this tool you can explore bivariate (even multivariate) relationships between topics and easily read examples of documents with various topic probabilities. You can also observe the relationship between covariates and topics.  For instance, we could set the color of the labels in the graph to "source".
 
 

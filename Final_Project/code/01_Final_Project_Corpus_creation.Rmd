@@ -1,7 +1,7 @@
 ---
 title: "Corpus creation"
 author: "Yana Konshyna"
-date: "06 March 2024"
+date: "07 March 2024"
 output: html_document
 ---
 
@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### Overview
-
-In this script we will be implementing the `word2vec` model (Mikolov et al. 2013) to learn vector representations of words in a large collection of articles.
 
 ```{r load libraries}
 library(quanteda)
@@ -52,13 +50,16 @@ saveRDS(dat, "/data/df_2013_last")
 # And make a duplicate to work on
 df <- dat  
 ```
+
 ```{r, eval = FALSE}
+df <- readRDS("/data/df_2013_last")
+
 # Take a look at the kind of object which gu_content creates. 
 # Try to find the column we need for our text analyses
 head(df) # checking our tibble
 
 # Print the number of rows
- print(nrow(df))
+# print(nrow(df))
 ```
 
 ```{r, eval = FALSE}
@@ -76,6 +77,7 @@ corpus_guardian <- corpus(df,
 # Checking our corpus
 #summary(corpus_guardian, 5)
 ```
+
 ```{r, eval = FALSE}
 library(quanteda)
 library(tibble)
@@ -99,7 +101,7 @@ write.csv(texts_df, "/data/corpus2013_last.csv", row.names = TRUE)
 
 ```
 
-Note that the steps in the training section of the script take *a very long time* to run.  To save time, the estimated model is available to load on to your machine so that you can explore the word embeddings on your own. 
+
 
 ### Load texts
 ```{r, eval = FALSE}
