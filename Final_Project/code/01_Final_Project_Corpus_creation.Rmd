@@ -135,6 +135,9 @@ tokens <- quanteda::tokens(corpus,
                  tolower = TRUE) %>%
     tokens_remove(stopwords("english")) # Remove stop words in a single chain
 
+super_stops <- c("said", "say", "says", "also")
+tokens <- tokens_remove(tokens, super_stops)
+
 # Directly create a Document-Feature Matrix (DFM) from tokens
 dfm <- dfm(tokens)
 
